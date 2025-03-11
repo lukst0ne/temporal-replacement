@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - machinery-network
+
+  producer:
+    build:
+      context: ..
+      dockerfile: ./temporal-replacement/producer/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    networks:
+      - machinery-network
+
+  consumer:
+    build:
+      context: ..
+      dockerfile: ./temporal-replacement/consumer/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    networks:
+      - machinery-network
+    deploy:
+      replicas: 3
+
+networks:
+  machinery-network:
+    driver: bridge
