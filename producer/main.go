@@ -24,9 +24,9 @@ func main() {
 	server, _ := setupProducerServer()
 
 	// var count int
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 4; i++ {
 		uuid := uuid.New().String()[:8]
-		deviceId := fmt.Sprintf("DEVICE_%d", 5)
+		deviceId := fmt.Sprintf("DEVICE_%d", i)
 		workflows := []*tasks.Signature{
 			{
 				UUID: fmt.Sprintf("task:%s:%s:lock", deviceId, uuid),
@@ -107,6 +107,92 @@ func main() {
 
 		time.Sleep(10 * time.Millisecond)
 		// count++
+	}
+	for i := 0; i < 5; i++ {
+		uuid := fmt.Sprintf("priority%d", i)
+		deviceId := fmt.Sprintf("DEVICE_%d", i)
+		workflows := []*tasks.Signature{
+			{
+				UUID: fmt.Sprintf("task:%s:%s:lock", deviceId, uuid),
+				Name: "acquireDeviceLock",
+				Args: []tasks.Arg{
+					{
+						Name:  "deviceId",
+						Type:  "string",
+						Value: deviceId,
+					},
+				},
+				RoutingKey: "asm_priority_queue",
+			},
+			{
+				UUID: fmt.Sprintf("task:%s:%s:getStatuses", deviceId, uuid),
+				Name: "getAllServiceStatus",
+				Args: []tasks.Arg{
+					{
+						Name:  "deviceId",
+						Type:  "string",
+						Value: deviceId,
+					},
+				},
+				RoutingKey: "asm_priority_queue",
+			},
+			{
+				UUID: fmt.Sprintf("task:%s:%s:startup", deviceId, uuid),
+				Name: "enableService",
+				Args: []tasks.Arg{
+					{
+						Name:  "deviceId",
+						Type:  "string",
+						Value: deviceId,
+					},
+					{
+						Name:  "service",
+						Type:  "string",
+						Value: "startup",
+					},
+				},
+				RetryCount: 2,
+				RoutingKey: "asm_priority_queue",
+			},
+			{
+				UUID: fmt.Sprintf("task:%s:%s:greTunnel", deviceId, uuid),
+				Name: "enableService",
+				Args: []tasks.Arg{
+					{
+						Name:  "deviceId",
+						Type:  "string",
+						Value: deviceId,
+					},
+					{
+						Name:  "service",
+						Type:  "string",
+						Value: "greTunnel",
+					},
+				},
+				RetryCount: 2,
+				RoutingKey: "asm_priority_queue",
+			},
+			{
+				UUID: fmt.Sprintf("task:%s:%s:releaseLock", deviceId, uuid),
+				Name: "releaseDeviceLock",
+				Args: []tasks.Arg{
+					{
+						Name:  "deviceId",
+						Type:  "string",
+						Value: deviceId,
+					},
+				},
+				RoutingKey: "asm_priority_queue",
+			},
+		}
+
+		fmt.Printf("pushing batch with parentId task:%s:%s\n", deviceId, uuid)
+		chain, _ := tasks.NewChain(workflows...)
+
+		_, err := server.SendChainWithContext(context.TODO(), chain)
+		if err != nil {
+			fmt.Printf("error: %s\n", err)
+		}
 	}
 }
 

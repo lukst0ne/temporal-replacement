@@ -41,16 +41,20 @@ func main() {
 		fmt.Printf("error registering tasks: %s", err.Error())
 	}
 
-	machineryWorker := server.NewWorker("worker_name", 1000)
+	machineryWorker := server.NewWorker("worker_name", 1)
+	machineryPriorityWorker := server.NewCustomQueueWorker("priority_worker_name", 10, "asm_priority_queue")
 
 	machineryWorker.SetPostTaskHandler(workerEnv.PrintServiceStatus)
+	machineryPriorityWorker.SetPostTaskHandler(workerEnv.PrintServiceStatus)
 
 	log.WARNING.Println("Starting worker")
 
-	err = machineryWorker.Launch()
-	if err != nil {
-		log.FATAL.Fatalf("Failed to launch worker: %s", err)
-	}
+	errorsChan := make(chan error)
+	machineryWorker.LaunchAsync(errorsChan)
+	machineryPriorityWorker.LaunchAsync(errorsChan)
+
+	log.INFO.Println("Workers started successfully")
+	select {}
 }
 
 func setupServer() (*machinery.Server, error) {

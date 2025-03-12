@@ -54,15 +54,15 @@ func (w *WorkerEnv) GetAllServiceStatus(deviceId string) error {
 }
 
 func (w *WorkerEnv) PrintServiceStatus(task *tasks.Signature) {
+	parts := strings.Split(task.UUID, ":")
+	if len(parts) < 3 {
+		return
+	}
+	deviceId := parts[1]
+	service := parts[3]
+
 	switch task.Name {
 	case "enableService":
-		parts := strings.Split(task.UUID, ":")
-		if len(parts) < 3 {
-			return
-		}
-		deviceId := parts[1]
-		service := parts[3]
-
 		keyPrefix := deviceId + ":services:" + service
 		statusKey := keyPrefix + ":status"
 		status, err := w.Redis.Get(statusKey).Result()
@@ -90,7 +90,7 @@ func (w *WorkerEnv) EnableService(deviceId, service string) error {
 		return err
 	}
 
-	//TODO pull script from dynamodb
+	//TODO pull script from asm dynamodb
 
 	//runDSLScript
 	err := w.runDSLScript(deviceId, service)
