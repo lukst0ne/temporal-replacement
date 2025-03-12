@@ -28,7 +28,7 @@ services:
     networks:
       - machinery-network
     deploy:
-      replicas: 3
+      replicas: 10
 
 networks:
   machinery-network:

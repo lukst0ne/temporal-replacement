@@ -24,9 +24,9 @@ func main() {
 	server, _ := setupProducerServer()
 
 	// var count int
-	for i := 0; i < 20; i++ {
-		uuid := uuid.New().String()
-		deviceId := fmt.Sprintf("DEVICE_%d", i%10)
+	for i := 0; i < 10; i++ {
+		uuid := uuid.New().String()[:8]
+		deviceId := fmt.Sprintf("DEVICE_%d", 5)
 		workflows := []*tasks.Signature{
 			{
 				UUID: fmt.Sprintf("task:%s:%s:lock", deviceId, uuid),
@@ -38,7 +38,6 @@ func main() {
 						Value: deviceId,
 					},
 				},
-				RetryCount: 5,
 			},
 			{
 				UUID: fmt.Sprintf("task:%s:%s:getStatuses", deviceId, uuid),
@@ -69,6 +68,23 @@ func main() {
 				RetryCount: 2,
 			},
 			{
+				UUID: fmt.Sprintf("task:%s:%s:greTunnel", deviceId, uuid),
+				Name: "enableService",
+				Args: []tasks.Arg{
+					{
+						Name:  "deviceId",
+						Type:  "string",
+						Value: deviceId,
+					},
+					{
+						Name:  "service",
+						Type:  "string",
+						Value: "greTunnel",
+					},
+				},
+				RetryCount: 2,
+			},
+			{
 				UUID: fmt.Sprintf("task:%s:%s:releaseLock", deviceId, uuid),
 				Name: "releaseDeviceLock",
 				Args: []tasks.Arg{
@@ -81,10 +97,13 @@ func main() {
 			},
 		}
 
-		fmt.Printf("pushing task:%s:%s:\n", deviceId, uuid)
+		fmt.Printf("pushing batch with parentId task:%s:%s\n", deviceId, uuid)
 		chain, _ := tasks.NewChain(workflows...)
 
-		server.SendChainWithContext(context.TODO(), chain)
+		_, err := server.SendChainWithContext(context.TODO(), chain)
+		if err != nil {
+			fmt.Printf("error: %s\n", err)
+		}
 
 		time.Sleep(10 * time.Millisecond)
 		// count++

@@ -1,7 +1,8 @@
 package workflows
 
 import (
-	"fmt"
+	"errors"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ type ServiceStatus struct {
 	LastWorkflowEndTime   time.Time `json:"lastWorkflowEndTime"`
 }
 
-func (w *WorkerEnv) GetAllServiceStatus(deviceId string) error {
+func (w *WorkerEnv) GetAllServiceStatus(deviceId string) error {	
 	serviceStatus := []ServiceStatus{
 		{
 			DeviceId:              deviceId,
@@ -68,7 +69,11 @@ func (w *WorkerEnv) PrintServiceStatus(task *tasks.Signature) {
 		if err != nil {
 			return
 		}
-		w.Logger.Warnf("%s status: %s\n", task.UUID, status)
+		if status == "Completed" {
+			w.Logger.Warnf("%s status: %s\n", task.UUID, status)
+		} else if status == "Failed" {
+			w.Logger.Errorf("%s status: %s\n", task.UUID, status)
+		}
 		return
 	}
 }
@@ -93,7 +98,8 @@ func (w *WorkerEnv) EnableService(deviceId, service string) error {
 		if err := w.Redis.Set(statusKey, "Failed", 0).Err(); err != nil {
 			return err
 		}
-		return err
+		//dont set error on a failed runDSLScript so the next task can run
+		return nil
 	}
 
 	if err := w.Redis.Set(statusKey, "Completed", 0).Err(); err != nil {
@@ -107,9 +113,9 @@ func (w *WorkerEnv) EnableService(deviceId, service string) error {
 }
 
 func (w *WorkerEnv) runDSLScript(deviceId, service string) error {
-	time.Sleep(time.Millisecond * 500)
-	if deviceId == "DEVICE_5" {
-		return fmt.Errorf("failed to run DSL script for %s for service %s", deviceId, service)
+	time.Sleep(time.Second * time.Duration(rand.Intn(5)+1))
+	if deviceId == "DEVICE_5" && service == "startup" {
+		return errors.New("failed to run DSL script")
 	}
 	return nil
 }

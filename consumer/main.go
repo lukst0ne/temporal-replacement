@@ -24,7 +24,7 @@ func main() {
 	}
 
 	logger := logrus.New()
-	logger.SetLevel(logrus.InfoLevel)
+	logger.SetLevel(logrus.WarnLevel)
 	log.Set(logger)
 
 	workerEnv, _ := workflows.NewWorker(fmt.Sprintf("%s:6379", REDIS_HOST), logger, 0)
@@ -45,7 +45,7 @@ func main() {
 
 	machineryWorker.SetPostTaskHandler(workerEnv.PrintServiceStatus)
 
-	log.INFO.Println("Launching worker")
+	log.WARNING.Println("Starting worker")
 
 	err = machineryWorker.Launch()
 	if err != nil {

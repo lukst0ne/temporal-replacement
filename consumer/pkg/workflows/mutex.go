@@ -3,6 +3,8 @@ package workflows
 import (
 	"fmt"
 	"time"
+
+	"github.com/RichardKnop/machinery/v2/tasks"
 )
 
 func (w *WorkerEnv) AcquireDeviceLock(deviceId string) error {
@@ -19,11 +21,17 @@ func (w *WorkerEnv) AcquireDeviceLock(deviceId string) error {
 		w.Logger.Warnf("Successfully acquired lock for %s\n", deviceId)
 		return nil
 	}
-	w.Logger.Warnf("Failed to acquire lock for %s", deviceId)
-	return fmt.Errorf("failed to acquire lock for %s", deviceId)
+	w.Logger.Errorf("Failed to acquire lock for %s", deviceId)
+	return tasks.NewErrRetryTaskLater("Failed to acquire lock", 10 * time.Second)
 }
 
 func (w *WorkerEnv) ReleaseDeviceLock(deviceId string) error {
+	w.Logger.Warnf("Releasing lock for %s\n", deviceId)
 	_, err := w.Redis.Del(deviceId).Result()
 	return err
+}
+
+func (w *WorkerEnv) ReleaseDeviceLockOnError(errorMsg string, deviceId string) error {
+    w.Logger.WithField("error", errorMsg).Error("Releasing lock due to error")
+    return w.ReleaseDeviceLock(deviceId)
 }
